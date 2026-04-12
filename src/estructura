@@ -1,0 +1,13 @@
+/src
+  /controllers
+    authController.js      # (Dev A(Jhon))
+    userController.js      # (Dev B)
+    assetController.js     # (Dev C)
+    opsController.js       # (Dev D)
+  /routes
+    auth.js                # (Dev A(Jhon)) -> /api/auth
+    users.js               # (Dev B) -> /api/users
+    assets.js              # (Dev C) -> /api/assets
+    ops.js                 # (Dev D) -> /api/ops
+  /middlewares
+    roleCheck.js           # (Dev A(Jhon))
