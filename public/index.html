@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Trébol | Gestión de Activos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-50 text-slate-900 overflow-hidden h-screen w-screen font-inter">
+
+    <div class="flex h-full w-full">
+        <aside class="w-72 bg-slate-950 flex flex-col shrink-0 h-full">
+            <div class="p-8 flex-1 flex flex-col">
+                <div class="flex items-center gap-3 text-emerald-500 mb-10">
+                    <div class="p-2 bg-emerald-500/10 rounded-xl">
+                        <img src="assets/logo.png" alt="Logo" class="w-8 h-8 object-contain">
+                    </div>
+                    <span class="text-xl font-bold tracking-tight text-white uppercase italic">Track <span class="text-emerald-500">Trébol</span></span>
+                </div>
+
+                <nav class="space-y-2 flex-1">
+                    <button id="btn-dashboard" class="nav-link active"><i data-lucide="layout-dashboard" class="w-5 h-5"></i><span>Monitor Vivo</span></button>
+                    <button id="btn-flota" class="nav-link"><i data-lucide="truck" class="w-5 h-5"></i><span>Inventario Flota</span></button>
+                    <button id="btn-personal" class="nav-link"><i data-lucide="users" class="w-5 h-5"></i><span>Conductores</span></button>
+                    <button id="btn-reportes" class="nav-link"><i data-lucide="terminal" class="w-5 h-5"></i><span>Auditoría Logs</span></button>
+                    <button id="btn-logout" class="nav-link text-red-400 hover:bg-red-500/10 mt-10"><i data-lucide="log-out" class="w-5 h-5"></i><span>Cerrar Sesión</span></button>
+                </nav>
+            </div>
+            <div class="p-8 border-t border-white/5 bg-slate-900/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold uppercase" id="user-initial">A</div>
+                    <div>
+                        <p id="user-display-name" class="text-sm font-bold text-white leading-none italic">Usuario</p>
+                        <p class="text-[10px] text-emerald-500 uppercase mt-1 font-bold tracking-widest">Administrador</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col h-full overflow-hidden">
+            <header class="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-10 shrink-0 z-10">
+                <h1 id="page-title" class="text-xl font-bold text-slate-800">Monitor Satelital</h1>
+                <div class="text-xs font-bold text-emerald-500 flex items-center gap-2"><span class="pulse-live"></span> SISTEMA ACTIVO</div>
+            </header>
+
+            <div class="flex-1 relative p-6">
+                <section id="view-dashboard" class="absolute inset-6 flex gap-6 h-full">
+                    <div class="flex-1 bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden"><div id="map" class="h-full w-full"></div></div>
+                    <div class="w-80 flex flex-col gap-4">
+                        <h3 class="font-bold text-slate-800 flex items-center gap-2 px-1"><i data-lucide="radio" class="w-4 h-4 text-emerald-500"></i>Unidades en Vivo</h3>
+                        <div id="truck-status-list" class="space-y-3 overflow-y-auto pr-2 custom-scrollbar"></div>
+                    </div>
+                </section>
+
+                <section id="view-flota" class="hidden absolute inset-6 overflow-y-auto">
+                    <div class="max-w-6xl mx-auto">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold">Gestión de Camiones</h2>
+                            <button class="bg-emerald-600 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all">+ Añadir Camión</button>
+                        </div>
+                        <table class="custom-table">
+                            <thead><tr><th>Placa</th><th>Marca / Modelo / IMEI</th><th>Estado Operativo</th><th class="text-right">Acciones</th></tr></thead>
+                            <tbody id="flota-table-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="view-personal" class="hidden absolute inset-6 overflow-y-auto">
+                    <div class="max-w-6xl mx-auto">
+                        <div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold text-slate-800">Panel de Conductores</h2></div>
+                        <div id="conductor-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-10"></div>
+                    </div>
+                </section>
+
+                <section id="view-reportes" class="hidden absolute inset-6 flex flex-col bg-slate-950 rounded-[2.5rem] border border-emerald-500/20 overflow-hidden shadow-2xl">
+                    <div class="p-6 border-b border-emerald-500/10 bg-slate-900/50 flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="database" class="w-5 h-5 text-emerald-500"></i>
+                            <h2 class="text-emerald-500 font-mono font-bold tracking-tighter">TABLA: HISTORIAL_LOGS</h2>
+                        </div>
+                        <span class="text-[10px] font-mono text-emerald-500/50 italic font-bold">SOLO LECTURA</span>
+                    </div>
+                    <div id="logs-container" class="flex-1 p-8 font-mono text-xs overflow-y-auto custom-scrollbar-dark text-emerald-400/80 leading-relaxed">
+                        <p class="opacity-50 italic">// Esperando respuesta de la base de datos...</p>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+<div id="modal-conductor" class="fixed inset-0 z-[4000] hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-[2.5rem] w-full max-w-lg p-10 shadow-2xl">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-2xl font-black text-slate-800">Nuevo <span class="text-emerald-500">Conductor</span></h3>
+            <button onclick="closeModal('modal-conductor')" class="text-slate-300 hover:text-slate-600 transition-all">
+                <i data-lucide="x-circle" class="w-8 h-8"></i>
+            </button>
+        </div>
+
+        <form id="form-conductor" class="grid grid-cols-2 gap-4">
+            <div class="col-span-2">
+                <label class="label-form">Nombre Completo</label>
+                <input type="text" id="c-nombre" name="nombre_completo" required class="input-form" placeholder="Ej. Juan Pérez">
+            </div>
+
+            <div>
+                <label class="label-form">Cédula de Identidad (CI)</label>
+                <input type="text" id="c-ci" name="ci" pattern="[0-9]+" required class="input-form" placeholder="Solo números">
+            </div>
+
+            <div>
+                <label class="label-form">Nro de Licencia</label>
+                <input type="text" id="c-licencia" name="licencia" required class="input-form" placeholder="Ej. 44321-1A">
+            </div>
+
+            <div>
+                <label class="label-form">Vencimiento Licencia</label>
+                <input type="date" id="c-vencimiento" name="vencimiento_licencia" required class="input-form">
+            </div>
+
+            <div>
+                <label class="label-form">Teléfono de Contacto</label>
+                <input type="text" id="c-contacto" name="contacto" class="input-form" placeholder="Ej. 76543210">
+            </div>
+
+            <div class="col-span-2 mt-6">
+                <p class="text-[10px] text-slate-400 mb-4 px-2 italic">
+                    * Al guardar, se creará un registro en la tabla 'conductores' y se disparará el trigger de auditoría.
+                </p>
+                <button type="submit" class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 shadow-xl shadow-emerald-500/20 transition-all">
+                    Confirmar Registro
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-camion" class="fixed inset-0 z-[4000] hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-[2.5rem] w-full max-w-lg p-10 shadow-2xl">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-2xl font-black text-slate-800 italic">Nuevo <span class="text-emerald-500">Camión</span></h3>
+            <button onclick="closeModal('modal-camion')" class="text-slate-300 hover:text-slate-600 transition-all"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
+        </div>
+        <form id="form-camion" class="grid grid-cols-2 gap-4">
+            <div class="col-span-2">
+                <label class="label-form">Placa (Única)</label>
+                <input type="text" id="camion-placa" required class="input-form" placeholder="Ej. 4521-XPT">
+            </div>
+            <div>
+                <label class="label-form">Marca</label>
+                <input type="text" id="camion-marca" class="input-form" placeholder="Ej. Volvo">
+            </div>
+            <div>
+                <label class="label-form">Modelo</label>
+                <input type="text" id="camion-modelo" class="input-form" placeholder="Ej. FH16">
+            </div>
+            <div>
+                <label class="label-form">Año</label>
+                <input type="number" id="camion-anio" class="input-form" placeholder="2024">
+            </div>
+            <div>
+                <label class="label-form">Estado Operativo</label>
+                <select id="camion-estado" class="input-form">
+                    <option value="En Descanso">En Descanso</option>
+                    <option value="En Servicio">En Servicio</option>
+                    <option value="En Taller">En Taller</option>
+                </select>
+            </div>
+            <div class="col-span-2">
+                <label class="label-form">ID del GPS (UUID)</label>
+                <input type="text" id="camion-gps" class="input-form" placeholder="Vincular UUID de dispositivo_gps">
+            </div>
+            <div class="col-span-2">
+                <label class="label-form">Estado Mecánico / Observaciones</label>
+                <textarea id="camion-mecanico" class="input-form h-20 resize-none" placeholder="Detalles del motor, llantas, etc."></textarea>
+            </div>
+            <div class="col-span-2 mt-4">
+                <button type="submit" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-emerald-600 shadow-xl transition-all">
+                    Registrar Camión
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+    <div id="modal-login" class="fixed inset-0 z-[5000] flex items-center justify-center p-4">
+        <div class="bg-white rounded-[3.5rem] w-full max-w-md p-12 text-center shadow-2xl">
+            <div class="mb-8 inline-flex p-6 bg-emerald-50 rounded-3xl"><img src="assets/logo.png" alt="Logo" class="w-20 h-20 object-contain"></div>
+            <h2 class="text-4xl font-black text-slate-800 mb-2 italic uppercase">Track <span class="text-emerald-500">Trébol</span></h2>
+            <p class="text-slate-400 text-sm mb-10 font-bold uppercase tracking-widest italic">Acceso Restringido</p>
+            <form id="form-login" class="space-y-4">
+                <input type="email" id="login-email" required class="w-full px-6 py-5 rounded-2xl bg-slate-100 border-none outline-none focus:ring-2 focus:ring-emerald-500 transition-all" placeholder="Email">
+                <input type="password" id="login-pass" required class="w-full px-6 py-5 rounded-2xl bg-slate-100 border-none outline-none focus:ring-2 focus:ring-emerald-500 transition-all" placeholder="Contraseña">
+                <button type="submit" class="w-full py-5 bg-slate-950 text-white rounded-2xl font-black hover:bg-emerald-600 transition-all shadow-xl mt-4">ENTRAR</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
