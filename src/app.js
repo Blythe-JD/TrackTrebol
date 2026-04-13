@@ -33,6 +33,8 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/assets', require('./routes/assets'));
 app.use('/api/ops', require('./routes/ops'));
 */
+// Solo activamos la de users que es tu responsabilidad (Dev B activar esta opcion para parte de los conductores)
+app.use('/api/users', require('./routes/users')); 
 
 app.get('/', (req, res) => {
     res.json({ message: 'Servidor API de Track Trebol Activo y con Supabase Configurado.' });
